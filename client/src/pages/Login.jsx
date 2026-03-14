@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Leaf, Mail, Lock, User, Eye, EyeOff, ArrowRight, ArrowLeft, Globe, Shield, Zap, Recycle } from 'lucide-react'
+import { Leaf, Mail, Lock, User, Eye, EyeOff, ArrowRight, ArrowLeft, Globe, Shield, Zap, Recycle, Chrome } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 function Login() {
@@ -9,7 +9,8 @@ function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const { login, register } = useAuth()
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  const { login, register, loginWithGoogle } = useAuth()
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -35,6 +36,26 @@ function Login() {
     if (!result.success) {
       setError(result.error)
     }
+  }
+
+  const handleGoogleLogin = () => {
+    setError('')
+    setIsGoogleLoading(true)
+    
+    setTimeout(() => {
+      const mockGoogleUser = {
+        email: email || 'user@gmail.com',
+        name: name || 'Google User',
+        picture: null
+      }
+      
+      const result = loginWithGoogle(mockGoogleUser)
+      
+      if (!result.success) {
+        setError('Google login failed. Please try again.')
+      }
+      setIsGoogleLoading(false)
+    }, 1500)
   }
 
   const features = [
@@ -124,9 +145,13 @@ function Login() {
           </div>
 
           <div className="social-login">
-            <button className="social-btn">
-              <Globe size={20} />
-              <span>Google</span>
+            <button className="social-btn google-btn" onClick={handleGoogleLogin} disabled={isGoogleLoading}>
+              {isGoogleLoading ? (
+                <span className="google-spinner"></span>
+              ) : (
+                <Chrome size={20} />
+              )}
+              <span>{isGoogleLoading ? 'Signing in...' : 'Google'}</span>
             </button>
             <button className="social-btn">
               <Shield size={20} />
@@ -427,6 +452,31 @@ function Login() {
         .social-btn:hover {
           border-color: #10B981;
           background: #F0FDF4;
+        }
+
+        .google-btn {
+          background: #4285F4;
+          border-color: #4285F4;
+          color: white;
+        }
+
+        .google-btn:hover {
+          background: #3574E8;
+          border-color: #3574E8;
+        }
+
+        .google-btn:disabled {
+          opacity: 0.7;
+          cursor: wait;
+        }
+
+        .google-spinner {
+          width: 20px;
+          height: 20px;
+          border: 2px solid rgba(255,255,255,0.3);
+          border-top-color: white;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
         }
 
         .login-footer {

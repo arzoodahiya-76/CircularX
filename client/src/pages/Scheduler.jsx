@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Truck, Building2, Calendar, MapPin, Clock, ChevronLeft, ChevronRight, CheckCircle, Home, Navigation, Map, Eye, X, Package } from 'lucide-react'
+import { Truck, Building2, Calendar, MapPin, Clock, ChevronLeft, ChevronRight, CheckCircle, Home, Navigation, Map, Eye, X, Package, Star, Phone, Mail } from 'lucide-react'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -24,16 +24,17 @@ function Scheduler() {
   const [showTracking, setShowTracking] = useState(false)
   const [driverLocation, setDriverLocation] = useState(null)
   const [bookingHistory, setBookingHistory] = useState([])
+  const [showConfirmation, setShowConfirmation] = useState(false)
 
   const hubs = [
-    { id: 1, name: 'GreenTech Hub', address: '123 Main St, Delhi', lat: 28.6139, lng: 77.2090, distance: '2.3 km' },
-    { id: 2, name: 'EcoRecycle Center', address: '456 North Ave, Delhi', lat: 28.6328, lng: 77.2197, distance: '4.1 km' },
-    { id: 3, name: 'CircularHub', address: '789 East Blvd, Delhi', lat: 28.5941, lng: 77.2295, distance: '5.8 km' }
+    { id: 1, name: 'GreenTech Hub', address: '123 Main St, Delhi', lat: 28.6139, lng: 77.2090, distance: '2.3 km', rating: 4.8 },
+    { id: 2, name: 'EcoRecycle Center', address: '456 North Ave, Delhi', lat: 28.6328, lng: 77.2197, distance: '4.1 km', rating: 4.6 },
+    { id: 3, name: 'CircularHub', address: '789 East Blvd, Delhi', lat: 28.5941, lng: 77.2295, distance: '5.8 km', rating: 4.9 }
   ]
 
   const slots = [
-    { id: 'AM', time: '9:00 AM - 12:00 PM', available: true },
-    { id: 'PM', time: '2:00 PM - 5:00 PM', available: true }
+    { id: 'AM', time: '9:00 AM - 12:00 PM', available: true, slotsLeft: 3 },
+    { id: 'PM', time: '2:00 PM - 5:00 PM', available: true, slotsLeft: 5 }
   ]
 
   const getDaysInMonth = (date) => {
@@ -58,7 +59,7 @@ function Scheduler() {
     setIsBooking(true)
     setTimeout(() => {
       const newBooking = { 
-        id: 'BK-' + Date.now(), 
+        id: 'BK-' + Math.random().toString(36).substr(2, 9).toUpperCase(), 
         type: pickupType, 
         date: selectedDate, 
         time: selectedSlot.time, 
@@ -71,7 +72,8 @@ function Scheduler() {
       setBooking(newBooking)
       setBookingHistory(prev => [newBooking, ...prev])
       setIsBooking(false)
-    }, 1500)
+      setShowConfirmation(true)
+    }, 2000)
   }
 
   const startTracking = () => {
@@ -100,26 +102,26 @@ function Scheduler() {
 
   if (showTracking && driverLocation) {
     return (
-      <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="scheduler-page">
+        <div className="tracking-header">
           <div>
-            <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#0F172A', marginBottom: '8px' }}>Live Tracking</h1>
-            <p style={{ color: '#64748B' }}>Booking ID: {booking?.id}</p>
+            <h1>Live Tracking</h1>
+            <p>Booking ID: <span className="booking-id">{booking?.id}</span></p>
           </div>
-          <button onClick={() => { setShowTracking(false); setBooking(null) }} style={{ padding: '10px 20px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button className="close-tracking-btn" onClick={() => { setShowTracking(false); setBooking(null) }}>
             <X size={18} /> Close
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '24px' }}>
-          <div style={{ height: '500px', borderRadius: '16px', overflow: 'hidden', border: '2px solid #E2E8F0' }}>
-            <MapContainer center={[driverLocation.lat, driverLocation.lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
+        <div className="tracking-content">
+          <div className="tracking-map">
+            <MapContainer center={[driverLocation.lat, driverLocation.lng]} zoom={15} scrollWheelZoom={false}>
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               <Marker position={[driverLocation.lat, driverLocation.lng]}>
                 <Popup>
-                  <div style={{ textAlign: 'center' }}>
-                    <Truck size={24} color="#10B981" />
-                    <p style={{ margin: '8px 0 0', fontWeight: '600' }}>Driver En Route</p>
+                  <div style={{ textAlign: 'center', padding: '8px' }}>
+                    <Truck size={24} color="#10B981" style={{ marginBottom: '8px' }} />
+                    <p style={{ margin: 0, fontWeight: '600' }}>Driver En Route</p>
                   </div>
                 </Popup>
               </Marker>
@@ -127,169 +129,218 @@ function Scheduler() {
             </MapContainer>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ background: 'white', borderRadius: '16px', padding: '20px', border: '1px solid #E2E8F0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                <div style={{ width: '48px', height: '48px', background: '#10B981', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Truck size={24} color="white" />
-                </div>
-                <div>
-                  <div style={{ fontWeight: '600' }}>Driver Assigned</div>
-                  <div style={{ fontSize: '13px', color: '#64748B' }}>GreenTech E-Waste Services</div>
-                </div>
+          <div className="tracking-info">
+            <div className="driver-card">
+              <div className="driver-avatar">
+                <Truck size={24} />
               </div>
-              <div style={{ background: '#F0FDF4', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
-                <div style={{ fontSize: '24px', fontWeight: '700', color: '#059669' }}>Arriving Soon</div>
-                <div style={{ fontSize: '13px', color: '#065F46' }}>Estimated: {Math.floor(Math.random() * 10) + 5} minutes</div>
+              <div className="driver-details">
+                <h4>Driver Assigned</h4>
+                <p>GreenTech E-Waste Services</p>
+              </div>
+              <div className="eta-badge">
+                <Clock size={14} />
+                <span>{Math.floor(Math.random() * 10) + 5} min</span>
               </div>
             </div>
 
-            <div style={{ background: 'white', borderRadius: '16px', padding: '20px', border: '1px solid #E2E8F0' }}>
-              <h4 style={{ fontWeight: '600', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <MapPin size={18} /> Pickup Details
-              </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748B' }}>Type</span>
-                  <span style={{ fontWeight: '500' }}>{booking?.type === 'doorstep' ? 'Doorstep Pickup' : 'Hub Drop-off'}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748B' }}>Date</span>
-                  <span style={{ fontWeight: '500' }}>{booking?.date?.toLocaleDateString()}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748B' }}>Time</span>
-                  <span style={{ fontWeight: '500' }}>{booking?.time}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748B' }}>Address</span>
-                  <span style={{ fontWeight: '500', textAlign: 'right', maxWidth: '150px' }}>{booking?.address}</span>
-                </div>
+            <div className="pickup-details-card">
+              <h4><MapPin size={18} /> Pickup Details</h4>
+              <div className="detail-row">
+                <span>Type</span>
+                <span>{booking?.type === 'doorstep' ? 'Doorstep Pickup' : 'Hub Drop-off'}</span>
+              </div>
+              <div className="detail-row">
+                <span>Date</span>
+                <span>{booking?.date?.toLocaleDateString()}</span>
+              </div>
+              <div className="detail-row">
+                <span>Time</span>
+                <span>{booking?.time}</span>
+              </div>
+              <div className="detail-row">
+                <span>Address</span>
+                <span>{booking?.address}</span>
               </div>
             </div>
 
-            <div style={{ background: 'linear-gradient(135deg, #10B981, #059669)', borderRadius: '16px', padding: '20px', color: 'white' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                <Package size={20} />
-                <span style={{ fontWeight: '600' }}>Items to Pickup</span>
+            <div className="items-card">
+              <Package size={20} />
+              <div>
+                <h4>Items to Pickup</h4>
+                <p>E-waste items from AI Recognition</p>
               </div>
-              <div style={{ fontSize: '14px', opacity: 0.9 }}>E-waste items from AI Recognition</div>
             </div>
           </div>
         </div>
+
+        <style>{`
+          .scheduler-page { padding: 24px; max-width: 1400px; margin: 0 auto; }
+          .tracking-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+          .tracking-header h1 { font-size: 1.5rem; font-weight: 700; color: #0F172A; margin: 0; }
+          .tracking-header p { color: #64748B; margin: 4px 0 0; }
+          .booking-id { background: #F1F5F9; padding: 4px 10px; border-radius: 8px; font-family: monospace; }
+          .close-tracking-btn { display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: #F1F5F9; border: none; border-radius: 10px; font-weight: 500; cursor: pointer; }
+          .tracking-content { display: grid; grid-template-columns: 1fr 400px; gap: 24px; }
+          .tracking-map { height: 500px; border-radius: 20px; overflow: hidden; }
+          .tracking-info { display: flex; flex-direction: column; gap: 16px; }
+          .driver-card { background: white; border-radius: 16px; padding: 20px; display: flex; align-items: center; gap: 14px; }
+          .driver-avatar { width: 50px; height: 50px; background: linear-gradient(135deg, #10B981, #059669); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: white; }
+          .driver-details h4 { margin: 0; font-weight: 600; }
+          .driver-details p { margin: 4px 0 0; font-size: 0.85rem; color: #64748B; }
+          .eta-badge { margin-left: auto; background: #D1FAE5; color: #065F46; padding: 8px 14px; border-radius: 20px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+          .pickup-details-card { background: white; border-radius: 16px; padding: 20px; }
+          .pickup-details-card h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 16px; font-weight: 600; }
+          .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #F1F5F9; }
+          .detail-row:last-child { border: none; }
+          .detail-row span:first-child { color: #64748B; }
+          .detail-row span:last-child { font-weight: 500; }
+          .items-card { background: linear-gradient(135deg, #10B981, #059669); border-radius: 16px; padding: 20px; color: white; display: flex; align-items: center; gap: 14px; }
+          .items-card h4 { margin: 0; font-weight: 600; }
+          .items-card p { margin: 4px 0 0; opacity: 0.9; font-size: 0.9rem; }
+          @media (max-width: 1024px) { .tracking-content { grid-template-columns: 1fr; } }
+        `}</style>
       </div>
     )
   }
 
-  if (booking) {
+  if (booking && showConfirmation) {
     return (
-      <div style={{ padding: '32px', maxWidth: '800px', margin: '0 auto' }}>
-        <div style={{ background: 'white', borderRadius: '20px', padding: '40px', textAlign: 'center' }}>
-          <div style={{ width: '80px', height: '80px', margin: '0 auto 20px', background: '#D1FAE5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CheckCircle size={40} color="#10B981" />
-          </div>
-          <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px' }}>Booking Confirmed!</h2>
-          <p style={{ color: '#64748B', marginBottom: '24px' }}>Your pickup has been scheduled</p>
-          <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '20px', textAlign: 'left', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #E2E8F0' }}>
-              <span style={{ color: '#64748B' }}>Booking ID</span>
-              <span style={{ fontWeight: '600' }}>{booking.id}</span>
+      <div className="scheduler-page">
+        <div className="confirmation-container">
+          <div className="success-animation">
+            <div className="success-circle">
+              <CheckCircle size={48} />
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #E2E8F0' }}>
-              <span style={{ color: '#64748B' }}>Type</span>
-              <span style={{ fontWeight: '600' }}>{booking.type === 'doorstep' ? 'Doorstep Pickup' : 'Hub Drop-off'}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #E2E8F0' }}>
-              <span style={{ color: '#64748B' }}>Date</span>
-              <span style={{ fontWeight: '600' }}>{booking.date.toLocaleDateString()}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
-              <span style={{ color: '#64748B' }}>Location</span>
-              <span style={{ fontWeight: '600' }}>{booking.address || 'Not set'}</span>
+            <div className="success-rings">
+              <div className="ring"></div>
+              <div className="ring"></div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-            <button onClick={startTracking} style={{ padding: '14px 28px', background: 'linear-gradient(135deg, #10B981, #059669)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          
+          <h2>Booking Confirmed!</h2>
+          <p>Your pickup has been scheduled successfully</p>
+          
+          <div className="booking-details">
+            <div className="detail-item">
+              <span className="label">Booking ID</span>
+              <span className="value">{booking.id}</span>
+            </div>
+            <div className="detail-item">
+              <span className="label">Type</span>
+              <span className="value">{booking.type === 'doorstep' ? 'Doorstep Pickup' : 'Hub Drop-off'}</span>
+            </div>
+            <div className="detail-item">
+              <span className="label">Date</span>
+              <span className="value">{booking.date.toLocaleDateString()}</span>
+            </div>
+            <div className="detail-item">
+              <span className="label">Time</span>
+              <span className="value">{booking.time}</span>
+            </div>
+            <div className="detail-item">
+              <span className="label">Location</span>
+              <span className="value">{booking.address}</span>
+            </div>
+          </div>
+
+          <div className="confirmation-actions">
+            <button className="track-btn" onClick={startTracking}>
               <Navigation size={18} /> Track Delivery
             </button>
-            <button onClick={() => setBooking(null)} style={{ padding: '14px 28px', background: '#F8FAFC', color: '#374151', border: '1px solid #E2E8F0', borderRadius: '12px', fontWeight: '600', cursor: 'pointer' }}>
+            <button className="schedule-btn" onClick={() => { setBooking(null); setShowConfirmation(false); setSelectedDate(null); setSelectedSlot(null); }}>
               Schedule Another
             </button>
           </div>
+
+          <div className="contact-info">
+            <p><Phone size={14} /> Need help? Call: 1800-XXX-XXXX</p>
+            <p><Mail size={14} /> Confirmation sent to your email</p>
+          </div>
         </div>
 
-        {bookingHistory.length > 1 && (
-          <div style={{ marginTop: '32px' }}>
-            <h3 style={{ fontWeight: '600', marginBottom: '16px' }}>Past Bookings</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {bookingHistory.slice(1).map(b => (
-                <div key={b.id} style={{ background: 'white', borderRadius: '12px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontWeight: '600' }}>{b.id}</div>
-                    <div style={{ fontSize: '13px', color: '#64748B' }}>{b.date.toLocaleDateString()} - {b.type === 'doorstep' ? 'Doorstep' : 'Hub'}</div>
-                  </div>
-                  <span style={{ background: '#D1FAE5', color: '#065F46', padding: '4px 12px', borderRadius: '20px', fontSize: '12px' }}>Completed</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <style>{`
+          .scheduler-page { padding: 24px; max-width: 800px; margin: 0 auto; }
+          .confirmation-container { background: white; border-radius: 24px; padding: 48px; text-align: center; }
+          .success-animation { position: relative; width: 100px; height: 100px; margin: 0 auto 24px; }
+          .success-circle { width: 80px; height: 80px; background: #D1FAE5; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #10B981; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1; animation: scaleIn 0.5s ease; }
+          @keyframes scaleIn { from { transform: translate(-50%, -50%) scale(0); } to { transform: translate(-50%, -50%) scale(1); } }
+          .success-rings { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+          .ring { position: absolute; border: 2px solid #10B981; border-radius: 50%; animation: ringExpand 1s ease-out 0.3s forwards; opacity: 0; }
+          .ring:nth-child(1) { inset: 5px; }
+          .ring:nth-child(2) { inset: -5px; }
+          @keyframes ringExpand { from { transform: scale(0.5); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
+          .confirmation-container h2 { font-size: 1.75rem; font-weight: 700; color: #0F172A; margin: 0 0 8px; }
+          .confirmation-container > p { color: #64748B; margin: 0 0 32px; }
+          .booking-details { background: #F8FAFC; border-radius: 16px; padding: 24px; margin-bottom: 24px; text-align: left; }
+          .detail-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #E2E8F0; }
+          .detail-item:last-child { border: none; }
+          .detail-item .label { color: #64748B; }
+          .detail-item .value { font-weight: 600; color: #0F172A; }
+          .confirmation-actions { display: flex; gap: 12px; margin-bottom: 24px; }
+          .track-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 16px; background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; border-radius: 14px; font-weight: 600; cursor: pointer; }
+          .schedule-btn { flex: 1; padding: 16px; background: #F1F5F9; color: #374151; border: none; border-radius: 14px; font-weight: 600; cursor: pointer; }
+          .contact-info { color: #94A3B8; font-size: 0.85rem; }
+          .contact-info p { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 8px 0; }
+        `}</style>
       </div>
     )
   }
 
   return (
-    <div style={{ padding: '32px', maxWidth: '1400px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#0F172A', marginBottom: '8px', fontFamily: 'Sora, sans-serif' }}>Schedule Pickup</h1>
-        <p style={{ color: '#64748B' }}>Book doorstep pickup or drop at a partner hub</p>
+    <div className="scheduler-page">
+      <div className="scheduler-header">
+        <h1>Schedule Pickup</h1>
+        <p>Book doorstep pickup or drop at a partner hub</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '24px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ background: 'white', borderRadius: '16px', padding: '24px' }}>
-            <h3 style={{ fontWeight: '600', marginBottom: '16px' }}>Select Pickup Type</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              {[
-                { id: 'doorstep', icon: Truck, label: 'Doorstep Pickup', desc: 'We come to you' },
-                { id: 'hub', icon: Building2, label: 'Hub Drop-off', desc: 'Drop at nearest hub' }
-              ].map(item => (
-                <div key={item.id} onClick={() => setPickupType(item.id)} style={{ padding: '20px', border: `2px solid ${pickupType === item.id ? '#10B981' : '#E2E8F0'}`, borderRadius: '12px', cursor: 'pointer', background: pickupType === item.id ? '#F0FDF4' : 'white', textAlign: 'center', transition: 'all 0.2s' }}>
-                  <item.icon size={28} color={pickupType === item.id ? '#10B981' : '#64748B'} />
-                  <div style={{ fontWeight: '600', marginTop: '8px' }}>{item.label}</div>
-                  <div style={{ fontSize: '13px', color: '#64748B' }}>{item.desc}</div>
+      <div className="scheduler-content">
+        <div className="scheduler-left">
+          <div className="selection-card">
+            <h3>Select Pickup Type</h3>
+            <div className="type-options">
+              <div className={`type-option ${pickupType === 'doorstep' ? 'active' : ''}`} onClick={() => setPickupType('doorstep')}>
+                <div className="type-icon"><Truck size={24} /></div>
+                <div>
+                  <h4>Doorstep Pickup</h4>
+                  <p>We come to you</p>
                 </div>
-              ))}
+              </div>
+              <div className={`type-option ${pickupType === 'hub' ? 'active' : ''}`} onClick={() => setPickupType('hub')}>
+                <div className="type-icon"><Building2 size={24} /></div>
+                <div>
+                  <h4>Hub Drop-off</h4>
+                  <p>Drop at nearest hub</p>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div style={{ background: 'white', borderRadius: '16px', padding: '24px' }}>
-            <h3 style={{ fontWeight: '600', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Calendar size={20} /> Select Date
-            </h3>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <span style={{ fontWeight: '600' }}>{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</span>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} style={{ width: '32px', height: '32px', border: '1px solid #E2E8F0', borderRadius: '8px', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ChevronLeft size={16} /></button>
-                <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} style={{ width: '32px', height: '32px', border: '1px solid #E2E8F0', borderRadius: '8px', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ChevronRight size={16} /></button>
+          <div className="selection-card">
+            <h3><Calendar size={20} /> Select Date</h3>
+            <div className="calendar-header">
+              <span className="month-year">{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</span>
+              <div className="calendar-nav">
+                <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}><ChevronLeft size={18} /></button>
+                <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}><ChevronRight size={18} /></button>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', marginBottom: '16px' }}>
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} style={{ textAlign: 'center', fontSize: '12px', color: '#64748B', padding: '8px' }}>{d}</div>)}
+            <div className="calendar-grid">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} className="day-name">{d}</div>)}
               {days.map((d, i) => (
-                <div key={i} onClick={() => d && !isDisabled(d) && setSelectedDate(d)} style={{ aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', cursor: d && !isDisabled(d) ? 'pointer' : 'default', background: selectedDate?.toDateString() === d?.toDateString() ? '#10B981' : 'transparent', color: !d ? 'transparent' : isDisabled(d) ? '#CBD5E1' : selectedDate?.toDateString() === d?.toDateString() ? 'white' : '#1E293B', fontSize: '14px', fontWeight: d && !isDisabled(d) ? '500' : '400' }}>
+                <div key={i} className={`day ${!d ? 'empty' : ''} ${isDisabled(d) ? 'disabled' : ''} ${selectedDate?.toDateString() === d?.toDateString() ? 'selected' : ''}`} onClick={() => d && !isDisabled(d) && setSelectedDate(d)}>
                   {d?.getDate()}
                 </div>
               ))}
             </div>
             {selectedDate && (
-              <div>
-                <h4 style={{ fontWeight: '600', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}><Clock size={18} /> Select Time</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="time-slots">
+                <h4><Clock size={18} /> Select Time Slot</h4>
+                <div className="slots-grid">
                   {slots.map(slot => (
-                    <div key={slot.id} onClick={() => slot.available && setSelectedSlot(slot)} style={{ padding: '16px', border: `2px solid ${selectedSlot?.id === slot.id ? '#10B981' : '#E2E8F0'}`, borderRadius: '10px', cursor: slot.available ? 'pointer' : 'not-allowed', background: selectedSlot?.id === slot.id ? '#F0FDF4' : 'white', opacity: slot.available ? 1 : 0.5 }}>
-                      <div style={{ fontWeight: '600' }}>{slot.time}</div>
-                      <div style={{ fontSize: '13px', color: '#10B981' }}>Available</div>
+                    <div key={slot.id} className={`slot ${selectedSlot?.id === slot.id ? 'selected' : ''} ${!slot.available ? 'unavailable' : ''}`} onClick={() => slot.available && setSelectedSlot(slot)}>
+                      <span className="slot-time">{slot.time}</span>
+                      <span className="slots-left">{slot.slotsLeft} slots left</span>
                     </div>
                   ))}
                 </div>
@@ -298,27 +349,40 @@ function Scheduler() {
           </div>
 
           {pickupType === 'doorstep' ? (
-            <div style={{ background: 'white', borderRadius: '16px', padding: '24px' }}>
-              <h3 style={{ fontWeight: '600', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}><Home size={20} /> Pickup Address</h3>
-              <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Enter your full address" style={{ width: '100%', padding: '14px 16px', border: '2px solid #E2E8F0', borderRadius: '10px', fontSize: '15px' }} />
+            <div className="selection-card">
+              <h3><Home size={20} /> Pickup Address</h3>
+              <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Enter your full address" className="address-input" />
+              <div className="address-hint">
+                <MapPin size={16} /> We'll send our driver to this address
+              </div>
             </div>
           ) : (
-            <div style={{ background: 'white', borderRadius: '16px', padding: '24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}><MapPin size={20} /> Select Hub</h3>
-                <button onClick={() => setShowMap(!showMap)} style={{ padding: '8px 16px', background: '#F0FDF4', color: '#059669', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}>
-                  <Navigation size={14} style={{ marginRight: '4px' }} /> {showMap ? 'Hide' : 'Show'} Map
+            <div className="selection-card">
+              <div className="hub-header">
+                <h3><MapPin size={20} /> Select Hub</h3>
+                <button className="map-toggle-btn" onClick={() => setShowMap(!showMap)}>
+                  <Navigation size={14} /> {showMap ? 'Hide' : 'Show'} Map
                 </button>
               </div>
-              {showMap && <div style={{ height: '200px', borderRadius: '12px', overflow: 'hidden', marginBottom: '16px' }}><MapContainer center={[28.6139, 77.2090]} zoom={12} style={{ height: '100%', width: '100%' }}><TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" /><Marker position={[28.6139, 77.2090]} /></MapContainer></div>}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {showMap && (
+                <div className="map-preview">
+                  <MapContainer center={[28.6139, 77.2090]} zoom={12} style={{ height: '200px', width: '100%' }}>
+                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                    <Marker position={[28.6139, 77.2090]} />
+                  </MapContainer>
+                </div>
+              )}
+              <div className="hubs-list">
                 {hubs.map(hub => (
-                  <div key={hub.id} onClick={() => setSelectedHub(hub)} style={{ padding: '14px', border: `2px solid ${selectedHub?.id === hub.id ? '#10B981' : '#E2E8F0'}`, borderRadius: '10px', cursor: 'pointer', background: selectedHub?.id === hub.id ? '#F0FDF4' : 'white' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontWeight: '600' }}>{hub.name}</span>
-                      <span style={{ background: '#DBEAFE', color: '#1D4ED8', padding: '2px 10px', borderRadius: '20px', fontSize: '12px' }}>{hub.distance}</span>
+                  <div key={hub.id} className={`hub-item ${selectedHub?.id === hub.id ? 'selected' : ''}`} onClick={() => setSelectedHub(hub)}>
+                    <div className="hub-info">
+                      <h4>{hub.name}</h4>
+                      <p>{hub.address}</p>
                     </div>
-                    <div style={{ fontSize: '13px', color: '#64748B', marginTop: '4px' }}>{hub.address}</div>
+                    <div className="hub-meta">
+                      <span className="distance">{hub.distance}</span>
+                      <span className="rating"><Star size={12} fill="#F59E0B" color="#F59E0B" /> {hub.rating}</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -326,19 +390,124 @@ function Scheduler() {
           )}
         </div>
 
-        <div style={{ background: 'white', borderRadius: '16px', padding: '24px', height: 'fit-content', position: 'sticky', top: '100px' }}>
-          <h3 style={{ fontWeight: '600', marginBottom: '20px' }}>Booking Summary</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>Type</span><span style={{ fontWeight: '500' }}>{pickupType === 'doorstep' ? 'Doorstep' : 'Hub'}</span></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>Date</span><span style={{ fontWeight: '500' }}>{selectedDate?.toLocaleDateString() || 'Not selected'}</span></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>Time</span><span style={{ fontWeight: '500' }}>{selectedSlot?.time || 'Not selected'}</span></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>Location</span><span style={{ fontWeight: '500', textAlign: 'right', maxWidth: '150px' }}>{pickupType === 'doorstep' ? (address || 'Enter address') : (selectedHub?.name || 'Select hub')}</span></div>
+        <div className="scheduler-right">
+          <div className="summary-card">
+            <h3>Booking Summary</h3>
+            <div className="summary-items">
+              <div className="summary-item">
+                <span>Type</span>
+                <span>{pickupType === 'doorstep' ? 'Doorstep Pickup' : 'Hub Drop-off'}</span>
+              </div>
+              <div className="summary-item">
+                <span>Date</span>
+                <span>{selectedDate?.toLocaleDateString() || 'Not selected'}</span>
+              </div>
+              <div className="summary-item">
+                <span>Time</span>
+                <span>{selectedSlot?.time || 'Not selected'}</span>
+              </div>
+              <div className="summary-item">
+                <span>Location</span>
+                <span>{pickupType === 'doorstep' ? (address || 'Enter address') : (selectedHub?.name || 'Select hub')}</span>
+              </div>
+            </div>
+            <button className="book-btn" disabled={!selectedDate || !selectedSlot || (pickupType === 'doorstep' && !address) || (pickupType === 'hub' && !selectedHub) || isBooking}>
+              {isBooking ? (
+                <><span className="spinner"></span> Booking...</>
+              ) : (
+                <>Confirm Booking</>
+              )}
+            </button>
           </div>
-          <button onClick={handleBook} disabled={!selectedDate || !selectedSlot || (pickupType === 'doorstep' && !address) || (pickupType === 'hub' && !selectedHub) || isBooking} style={{ width: '100%', padding: '16px', background: (!selectedDate || !selectedSlot || (pickupType === 'doorstep' && !address) || (pickupType === 'hub' && !selectedHub)) ? '#94A3B8' : 'linear-gradient(135deg, #10B981, #059669)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer' }}>
-            {isBooking ? 'Booking...' : 'Confirm Booking'}
-          </button>
+
+          <div className="benefits-card">
+            <h4>Why Choose Us?</h4>
+            <div className="benefit">
+              <CheckCircle size={18} color="#10B981" />
+              <span>Free pickup on orders above ₹500</span>
+            </div>
+            <div className="benefit">
+              <CheckCircle size={18} color="#10B981" />
+              <span>Instant payment after pickup</span>
+            </div>
+            <div className="benefit">
+              <CheckCircle size={18} color="#10B981" />
+              <span>Certified eco-friendly recycling</span>
+            </div>
+          </div>
         </div>
       </div>
+
+      <style>{`
+        .scheduler-page { padding: 24px; max-width: 1400px; margin: 0 auto; }
+        .scheduler-header { margin-bottom: 32px; }
+        .scheduler-header h1 { font-size: 1.75rem; font-weight: 700; color: #0F172A; margin: 0; }
+        .scheduler-header p { color: #64748B; margin: 8px 0 0; }
+        .scheduler-content { display: grid; grid-template-columns: 1fr 380px; gap: 24px; }
+        .scheduler-left { display: flex; flex-direction: column; gap: 20px; }
+        .selection-card { background: white; border-radius: 20px; padding: 24px; }
+        .selection-card h3 { display: flex; align-items: center; gap: 10px; font-size: 1.1rem; font-weight: 600; color: #0F172A; margin: 0 0 20px; }
+        .type-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .type-option { display: flex; align-items: center; gap: 14px; padding: 18px; border: 2px solid #E2E8F0; border-radius: 14px; cursor: pointer; transition: all 0.2s; }
+        .type-option:hover { border-color: #10B981; }
+        .type-option.active { border-color: #10B981; background: #F0FDF4; }
+        .type-icon { width: 50px; height: 50px; background: #F1F5F9; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #64748B; }
+        .type-option.active .type-icon { background: #10B981; color: white; }
+        .type-option h4 { margin: 0; font-weight: 600; color: #0F172A; }
+        .type-option p { margin: 4px 0 0; font-size: 0.85rem; color: #64748B; }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .month-year { font-weight: 600; color: #0F172A; }
+        .calendar-nav { display: flex; gap: 4px; }
+        .calendar-nav button { width: 32px; height: 32px; border: 1px solid #E2E8F0; background: white; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .day-name { text-align: center; font-size: 0.75rem; color: #94A3B8; padding: 8px; font-weight: 500; }
+        .day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
+        .day.empty { cursor: default; }
+        .day.disabled { color: #CBD5E1; cursor: not-allowed; }
+        .day:not(.disabled):hover { background: #F1F5F9; }
+        .day.selected { background: #10B981; color: white; }
+        .time-slots { margin-top: 20px; padding-top: 20px; border-top: 1px solid #E2E8F0; }
+        .time-slots h4 { display: flex; align-items: center; gap: 8px; font-size: 1rem; font-weight: 600; margin: 0 0 14px; }
+        .slots-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .slot { padding: 16px; border: 2px solid #E2E8F0; border-radius: 12px; cursor: pointer; transition: all 0.2s; }
+        .slot:hover { border-color: #10B981; }
+        .slot.selected { border-color: #10B981; background: #F0FDF4; }
+        .slot.unavailable { opacity: 0.5; cursor: not-allowed; }
+        .slot-time { display: block; font-weight: 600; margin-bottom: 4px; }
+        .slots-left { font-size: 0.75rem; color: #10B981; }
+        .address-input { width: 100%; padding: 14px 16px; border: 2px solid #E2E8F0; border-radius: 12px; font-size: 1rem; margin-bottom: 12px; }
+        .address-input:focus { outline: none; border-color: #10B981; }
+        .address-hint { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #64748B; }
+        .hub-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .hub-header h3 { margin: 0; }
+        .map-toggle-btn { display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: #F0FDF4; color: #059669; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 500; cursor: pointer; }
+        .map-preview { height: 200px; border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
+        .hubs-list { display: flex; flex-direction: column; gap: 10px; }
+        .hub-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; border: 2px solid #E2E8F0; border-radius: 12px; cursor: pointer; transition: all 0.2s; }
+        .hub-item:hover { border-color: #10B981; }
+        .hub-item.selected { border-color: #10B981; background: #F0FDF4; }
+        .hub-info h4 { margin: 0; font-weight: 600; }
+        .hub-info p { margin: 4px 0 0; font-size: 0.85rem; color: #64748B; }
+        .hub-meta { text-align: right; }
+        .distance { display: block; font-weight: 600; color: #3B82F6; }
+        .rating { display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: #64748B; }
+        .scheduler-right { display: flex; flex-direction: column; gap: 16px; }
+        .summary-card { background: white; border-radius: 20px; padding: 24px; position: sticky; top: 100px; }
+        .summary-card h3 { font-size: 1.1rem; font-weight: 600; margin: 0 0 20px; }
+        .summary-items { margin-bottom: 20px; }
+        .summary-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #F1F5F9; }
+        .summary-item span:first-child { color: #64748B; }
+        .summary-item span:last-child { font-weight: 500; }
+        .book-btn { width: 100%; padding: 16px; background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; border-radius: 14px; font-size: 1.1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .book-btn:disabled { background: #CBD5E1; cursor: not-allowed; }
+        .spinner { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .benefits-card { background: linear-gradient(135deg, #F0FDF4, #D1FAE5); border-radius: 16px; padding: 20px; }
+        .benefits-card h4 { margin: 0 0 16px; font-size: 1rem; font-weight: 600; color: #065F46; }
+        .benefit { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; color: #065F46; font-size: 0.9rem; }
+        .benefit:last-child { margin: 0; }
+        @media (max-width: 1024px) { .scheduler-content { grid-template-columns: 1fr; } .summary-card { position: static; } }
+      `}</style>
     </div>
   )
 }

@@ -53,13 +53,37 @@ export function AuthProvider({ children }) {
     return { success: true }
   }
 
+  const loginWithGoogle = (googleUser) => {
+    const { email, name, picture } = googleUser
+    
+    let existingUser = MOCK_USERS.find(u => u.email === email)
+    
+    if (!existingUser) {
+      existingUser = {
+        id: String(MOCK_USERS.length + 1),
+        email,
+        password: '',
+        name: name || email.split('@')[0],
+        role: 'user',
+        avatar: picture,
+        provider: 'google'
+      }
+      MOCK_USERS.push(existingUser)
+    }
+    
+    const { password: _, ...userWithoutPassword } = existingUser
+    setUser(userWithoutPassword)
+    localStorage.setItem('circularx_user', JSON.stringify(userWithoutPassword))
+    return { success: true }
+  }
+
   const logout = () => {
     setUser(null)
     localStorage.removeItem('circularx_user')
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loginWithGoogle, isLoading }}>
       {children}
     </AuthContext.Provider>
   )

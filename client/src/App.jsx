@@ -5,17 +5,23 @@ import Scheduler from './pages/Scheduler'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import Splash from './pages/Splash'
-import { Leaf, Camera, Calendar, LayoutDashboard, LogOut, User, Wallet, Bell, Settings, Menu, X, Home, Sparkles, ArrowRight, Package, Truck, BarChart3, Globe, Shield, Zap, Recycle } from 'lucide-react'
+import Home from './pages/Home'
+import { Leaf, Camera, Calendar, LayoutDashboard, LogOut, User, Wallet, Bell, Settings, Menu, X, Home as HomeIcon, Sparkles, ArrowRight, Package, Truck, BarChart3, Globe, Shield, Zap, Recycle } from 'lucide-react'
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState('ai')
   const [showSplash, setShowSplash] = useState(true)
+  const [showHome, setShowHome] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const { user, logout } = useAuth()
 
   if (showSplash) {
-    return <Splash onComplete={() => setShowSplash(false)} />
+    return <Splash onComplete={() => { setShowSplash(false); setShowHome(true) }} />
+  }
+
+  if (showHome) {
+    return <Home onGetStarted={() => setShowHome(false)} />
   }
 
   if (!user) {

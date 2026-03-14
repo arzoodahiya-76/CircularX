@@ -3,7 +3,7 @@ import {
   Package, Recycle, DollarSign, TrendingUp, Smartphone, Battery, Monitor, Plug, Watch, 
   ShoppingCart, Filter, TreePine, Zap, Trash2, Award, Target, Leaf, Download, FileText, 
   Plus, X, CreditCard, Wallet, Building, Check, AlertCircle, Truck, Globe, Moon, Sun,
-  Activity, PieChart, BarChart
+  Activity, PieChart, BarChart, ArrowUp, ArrowDown, Search, Eye
 } from 'lucide-react'
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, BarChart as RechartsBar, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, AreaChart, Area } from 'recharts'
 
@@ -45,8 +45,7 @@ function Dashboard({ user }) {
     { id: 'MKT-005', type: 'Monitor', condition: 'Good', weight: 3500, status: 'Available', price: 12000, quantity: 1 },
     { id: 'MKT-006', type: 'Charger', condition: 'New', weight: 120, status: 'Available', price: 1500, quantity: 5 },
   ])
-  const [filters, setFilters] = useState({ status: 'all', type: 'all' })
-  const [isLoading, setIsLoading] = useState(false)
+  const [filters, setFilters] = useState({ status: 'all', type: 'all', search: '' })
   const [showListProduct, setShowListProduct] = useState(false)
   const [showPayment, setShowPayment] = useState(false)
   const [selectedItems, setSelectedItems] = useState([])
@@ -68,12 +67,7 @@ function Dashboard({ user }) {
       price: parseInt(newProduct.price),
       quantity: 1
     }
-    console.log('Adding product:', newItem)
-    setMarketplace(prev => {
-      const updated = [newItem, ...prev]
-      console.log('Updated marketplace:', updated)
-      return updated
-    })
+    setMarketplace(prev => [newItem, ...prev])
     setInventory(prev => [{ ...newItem, id: `INV-${Date.now()}` }, ...prev])
     setShowListProduct(false)
     setNewProduct({ type: 'Smartphone', condition: 'Good', price: '', description: '' })
@@ -81,14 +75,12 @@ function Dashboard({ user }) {
     setActiveTab('marketplace')
   }
 
-  const loadInventory = () => {
-    const filtered = inventory.filter(item => {
-      if (filters.status !== 'all' && item.status.toLowerCase().replace(' ', '-') !== filters.status) return false
-      if (filters.type !== 'all' && item.type.toLowerCase() !== filters.type) return false
-      return true
-    })
-    return filtered
-  }
+  const filteredInventory = inventory.filter(item => {
+    if (filters.status !== 'all' && item.status.toLowerCase().replace(' ', '-') !== filters.status) return false
+    if (filters.type !== 'all' && item.type.toLowerCase() !== filters.type) return false
+    if (filters.search && !item.type.toLowerCase().includes(filters.search.toLowerCase())) return false
+    return true
+  })
 
   const handlePurchase = (item) => {
     setSelectedItems([item])
@@ -134,35 +126,34 @@ function Dashboard({ user }) {
     })
   }
 
-  if (isLoading) {
-    return (
-      <div className="page-container">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>Loading your dashboard...</p>
-        </div>
-      </div>
-    )
+  const getStatusColor = (status) => {
+    if (status === 'Available') return { bg: '#D1FAE5', color: '#065F46' }
+    if (status === 'Sold') return { bg: '#DBEAFE', color: '#1D4ED8' }
+    if (status === 'In-Transit') return { bg: '#FEF3C7', color: '#92400E' }
+    return { bg: '#FEE2E2', color: '#991B1B' }
   }
 
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">
-            {activeTab === 'dashboard' ? 'Dashboard' : activeTab === 'inventory' ? 'Inventory' : 'Marketplace'}
+    <div className="dashboard-page">
+      <div className="dashboard-header">
+        <div className="header-left">
+          <h1>
+            {activeTab === 'dashboard' && 'Dashboard'}
+            {activeTab === 'inventory' && 'My Inventory'}
+            {activeTab === 'marketplace' && 'Marketplace'}
           </h1>
-          <p className="page-subtitle">
-            {activeTab === 'dashboard' ? 'Track your e-waste impact and environmental contribution' : 
-             activeTab === 'inventory' ? 'Manage your recycled devices and materials' : 'Browse and trade refurbished electronics'}
+          <p>
+            {activeTab === 'dashboard' && 'Track your e-waste impact and environmental contribution'}
+            {activeTab === 'inventory' && 'Manage your recycled devices and materials'}
+            {activeTab === 'marketplace' && 'Browse and trade refurbished electronics'}
           </p>
         </div>
         <div className="header-actions">
           <button className="action-btn" onClick={() => handleExport('pdf')}>
-            <FileText size={18} /> PDF Report
+            <FileText size={18} /> PDF
           </button>
           <button className="action-btn" onClick={() => handleExport('csv')}>
-            <Download size={18} /> Export Data
+            <Download size={18} /> Export
           </button>
         </div>
       </div>
@@ -183,18 +174,22 @@ function Dashboard({ user }) {
         <>
           <div className="metrics-grid">
             {[
-              { icon: Package, label: 'Total Items', value: metrics?.totalItemsCollected || 0, color: '#10B981', gradient: 'green' },
-              { icon: TrendingUp, label: 'AI Searches', value: metrics?.totalSearches || 0, color: '#8B5CF6', gradient: 'purple' },
-              { icon: DollarSign, label: 'Value Searched', value: formatINR(metrics?.totalValueSearched || 0), color: '#F59E0B', gradient: 'amber', isValue: true },
-              { icon: Truck, label: 'Active Pickups', value: metrics?.activePickups || 0, color: '#3B82F6', gradient: 'blue' },
-              { icon: Recycle, label: 'Materials Recycled', value: formatNumber(metrics?.materialRecovered?.gold + metrics?.materialRecovered?.silver + metrics?.materialRecovered?.copper + metrics?.materialRecovered?.aluminum + metrics?.materialRecovered?.plastic) + ' kg', color: '#EC4899', gradient: 'pink', isValue: true }
+              { icon: Package, label: 'Total Items', value: metrics?.totalItemsCollected || 0, color: '#10B981', gradient: 'green', trend: '+12%' },
+              { icon: TrendingUp, label: 'AI Searches', value: metrics?.totalSearches || 0, color: '#8B5CF6', gradient: 'purple', trend: '+8%' },
+              { icon: DollarSign, label: 'Value Searched', value: formatINR(metrics?.totalValueSearched || 0), color: '#F59E0B', gradient: 'amber', isValue: true, trend: '+15%' },
+              { icon: Truck, label: 'Active Pickups', value: metrics?.activePickups || 0, color: '#3B82F6', gradient: 'blue', trend: '+3' }
             ].map((item, i) => (
-              <div key={i} className="metric-card">
+              <div key={i} className="metric-card" style={{ animationDelay: `${i * 0.1}s` }}>
                 <div className={`metric-icon ${item.gradient}`}><item.icon size={22} /></div>
                 <div className="metric-content">
                   <span className="metric-value">{item.value}</span>
                   <span className="metric-label">{item.label}</span>
                 </div>
+                {item.trend && (
+                  <span className="metric-trend positive">
+                    <ArrowUp size={14} /> {item.trend}
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -212,7 +207,7 @@ function Dashboard({ user }) {
                   { name: 'Landfill Diverted', value: metrics?.environmentalImpact?.landfillsDiverted || 0, unit: 'kg', color: '#8B5CF6', icon: Trash2 },
                   { name: 'Trees Equivalent', value: metrics?.environmentalImpact?.treesEquivalent || 0, unit: 'trees', color: '#059669', icon: TreePine }
                 ].map((item, i) => (
-                  <div key={i} className="impact-item">
+                  <div key={i} className="impact-item" style={{ animationDelay: `${i * 0.1}s` }}>
                     <div className="impact-icon" style={{ background: item.color + '20', color: item.color }}>
                       <item.icon size={18} />
                     </div>
@@ -252,7 +247,7 @@ function Dashboard({ user }) {
               </div>
               <div className="green-credits">
                 <Leaf size={18} />
-                <span>{wallet?.greenCredits || 0} Green Credits Earned</span>
+                <span>{wallet?.greenCredits || 0} Green Credits</span>
               </div>
               <div className="wallet-actions">
                 <button className="wallet-btn add">+ Add Funds</button>
@@ -332,6 +327,15 @@ function Dashboard({ user }) {
         <div className="inventory-section">
           <div className="section-header">
             <div className="filter-group">
+              <div className="search-box">
+                <Search size={18} />
+                <input 
+                  type="text" 
+                  placeholder="Search..." 
+                  value={filters.search}
+                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                />
+              </div>
               <select className="filter-select" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
                 <option value="all">All Status</option>
                 <option value="available">Available</option>
@@ -345,12 +349,12 @@ function Dashboard({ user }) {
                 <option value="tablet">Tablet</option>
               </select>
             </div>
-            <span className="item-count">{loadInventory().length} items</span>
+            <span className="item-count">{filteredInventory.length} items</span>
           </div>
           
           <div className="inventory-grid">
-            {loadInventory().map((item) => (
-              <div key={item.id} className="inventory-card">
+            {filteredInventory.map((item, i) => (
+              <div key={item.id} className="inventory-card" style={{ animationDelay: `${i * 0.05}s` }}>
                 <div className="inventory-icon" style={{ background: item.type === 'Smartphone' ? 'linear-gradient(135deg, #10B981, #059669)' : item.type === 'Laptop' ? 'linear-gradient(135deg, #3B82F6, #1D4ED8)' : 'linear-gradient(135deg, #8B5CF6, #6D28D9)' }}>
                   {typeIcons[item.type] ? React.createElement(typeIcons[item.type], { size: 28 }) : <Package size={28} />}
                 </div>
@@ -358,7 +362,7 @@ function Dashboard({ user }) {
                   <h4>{item.type}</h4>
                   <p>{item.condition} • {item.weight}g</p>
                   <div className="inventory-meta">
-                    <span className={`status ${item.status.toLowerCase().replace(' ', '-')}`}>{item.status}</span>
+                    <span className={`status ${item.status.toLowerCase().replace(' ', '-')}`} style={{ background: getStatusColor(item.status).bg, color: getStatusColor(item.status).color }}>{item.status}</span>
                     <span className="price">{formatINR(item.price)}</span>
                   </div>
                   <span className="quantity">Qty: {item.quantity}</span>
@@ -379,10 +383,10 @@ function Dashboard({ user }) {
           </div>
           
           <div className="marketplace-grid">
-            {marketplace.map((item) => {
+            {marketplace.map((item, i) => {
               const Icon = typeIcons[item.type] || Package
               return (
-                <div key={item.id} className="product-card">
+                <div key={item.id} className="product-card" style={{ animationDelay: `${i * 0.05}s` }}>
                   <div className="product-image">
                     <Icon size={40} />
                     <span className="product-badge">{item.condition}</span>
@@ -468,6 +472,717 @@ function Dashboard({ user }) {
           </div>
         </div>
       )}
+
+      <style>{`
+        .dashboard-page {
+          padding: 24px;
+          max-width: 1400px;
+          margin: 0 auto;
+        }
+
+        .dashboard-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 24px;
+        }
+
+        .header-left h1 {
+          font-size: 1.75rem;
+          font-weight: 700;
+          color: #0F172A;
+          margin: 0;
+        }
+
+        .header-left p {
+          color: #64748B;
+          margin: 4px 0 0;
+        }
+
+        .header-actions {
+          display: flex;
+          gap: 10px;
+        }
+
+        .action-btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 18px;
+          background: white;
+          border: 1px solid #E2E8F0;
+          border-radius: 10px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+          background: #F8FAFC;
+          border-color: #CBD5E1;
+        }
+
+        .tabs-container {
+          display: flex;
+          gap: 8px;
+          background: white;
+          padding: 8px;
+          border-radius: 16px;
+          margin-bottom: 24px;
+        }
+
+        .tab-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px 24px;
+          background: transparent;
+          border: none;
+          border-radius: 12px;
+          font-weight: 500;
+          color: #64748B;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .tab-item.active {
+          background: linear-gradient(135deg, #10B981, #059669);
+          color: white;
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .tab-item:hover:not(.active) {
+          background: #F1F5F9;
+        }
+
+        .metrics-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 16px;
+          margin-bottom: 24px;
+        }
+
+        .metric-card {
+          background: white;
+          border-radius: 16px;
+          padding: 20px;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          position: relative;
+          animation: fadeInUp 0.4s ease forwards;
+          opacity: 0;
+        }
+
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .metric-icon {
+          width: 50px;
+          height: 50px;
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+        }
+
+        .metric-icon.green { background: linear-gradient(135deg, #10B981, #059669); }
+        .metric-icon.purple { background: linear-gradient(135deg, #8B5CF6, #6D28D9); }
+        .metric-icon.amber { background: linear-gradient(135deg, #F59E0B, #D97706); }
+        .metric-icon.blue { background: linear-gradient(135deg, #3B82F6, #1D4ED8); }
+
+        .metric-content {
+          flex: 1;
+        }
+
+        .metric-value {
+          display: block;
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #0F172A;
+        }
+
+        .metric-label {
+          font-size: 0.85rem;
+          color: #64748B;
+        }
+
+        .metric-trend {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          padding: 4px 8px;
+          border-radius: 8px;
+        }
+
+        .metric-trend.positive {
+          background: #D1FAE5;
+          color: #065F46;
+        }
+
+        .dashboard-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 20px;
+        }
+
+        .dashboard-card {
+          background: white;
+          border-radius: 20px;
+          padding: 24px;
+        }
+
+        .card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+
+        .card-header h3 {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 1.1rem;
+          font-weight: 600;
+          color: #0F172A;
+          margin: 0;
+        }
+
+        .eco-badge {
+          background: #D1FAE5;
+          color: #065F46;
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 0.75rem;
+          font-weight: 500;
+        }
+
+        .impact-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+          margin-bottom: 20px;
+        }
+
+        .impact-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 14px;
+          background: #F8FAFC;
+          border-radius: 14px;
+          animation: fadeInUp 0.4s ease forwards;
+          opacity: 0;
+        }
+
+        .impact-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .impact-value {
+          display: block;
+          font-weight: 600;
+          color: #0F172A;
+          font-size: 1rem;
+        }
+
+        .impact-label {
+          font-size: 0.75rem;
+          color: #64748B;
+        }
+
+        .wallet-balance {
+          text-align: center;
+          padding: 20px;
+          background: linear-gradient(135deg, #0F172A, #1E3A5F);
+          border-radius: 16px;
+          margin-bottom: 16px;
+        }
+
+        .balance-label {
+          display: block;
+          color: rgba(255,255,255,0.7);
+          font-size: 0.9rem;
+          margin-bottom: 4px;
+        }
+
+        .balance-value {
+          font-size: 2rem;
+          font-weight: 700;
+          color: white;
+        }
+
+        .green-credits {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          color: #10B981;
+          font-weight: 500;
+          margin-bottom: 16px;
+        }
+
+        .wallet-actions {
+          display: flex;
+          gap: 10px;
+        }
+
+        .wallet-btn {
+          flex: 1;
+          padding: 12px;
+          border: 1px solid #E2E8F0;
+          background: white;
+          border-radius: 10px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .wallet-btn.add {
+          background: #10B981;
+          color: white;
+          border-color: #10B981;
+        }
+
+        .wallet-btn:hover {
+          background: #F8FAFC;
+        }
+
+        .wallet-btn.add:hover {
+          background: #059669;
+        }
+
+        .badge-count {
+          background: #F1F5F9;
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 0.85rem;
+          font-weight: 500;
+        }
+
+        .badges-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .badge-item {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 12px;
+          border-radius: 12px;
+          border: 1px solid transparent;
+          transition: all 0.2s;
+        }
+
+        .badge-item.earned {
+          transform: scale(1.02);
+        }
+
+        .badge-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #F1F5F9;
+          color: #94A3B8;
+        }
+
+        .badge-name {
+          display: block;
+          font-weight: 600;
+          font-size: 0.9rem;
+          color: #0F172A;
+        }
+
+        .badge-desc {
+          font-size: 0.75rem;
+          color: #64748B;
+        }
+
+        .materials-legend {
+          display: flex;
+          justify-content: center;
+          gap: 20px;
+          margin-top: 16px;
+        }
+
+        .legend-item {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.8rem;
+          color: #64748B;
+        }
+
+        .legend-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+        }
+
+        .section-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+
+        .section-header h3 {
+          font-size: 1.2rem;
+          font-weight: 600;
+          color: #0F172A;
+        }
+
+        .search-box {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 16px;
+          background: white;
+          border: 1px solid #E2E8F0;
+          border-radius: 10px;
+        }
+
+        .search-box input {
+          border: none;
+          outline: none;
+          font-size: 0.9rem;
+          width: 150px;
+        }
+
+        .filter-select {
+          padding: 10px 16px;
+          background: white;
+          border: 1px solid #E2E8F0;
+          border-radius: 10px;
+          font-size: 0.9rem;
+          cursor: pointer;
+        }
+
+        .filter-group {
+          display: flex;
+          gap: 10px;
+        }
+
+        .item-count {
+          color: #64748B;
+          font-size: 0.9rem;
+        }
+
+        .list-btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 20px;
+          background: linear-gradient(135deg, #10B981, #059669);
+          color: white;
+          border: none;
+          border-radius: 10px;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        .inventory-grid, .marketplace-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 16px;
+        }
+
+        .inventory-card, .product-card {
+          background: white;
+          border-radius: 16px;
+          padding: 20px;
+          animation: fadeInUp 0.4s ease forwards;
+          opacity: 0;
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .inventory-card:hover, .product-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+        }
+
+        .inventory-icon, .product-image {
+          width: 60px;
+          height: 60px;
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          margin-bottom: 14px;
+        }
+
+        .inventory-info h4, .product-info h4 {
+          font-size: 1rem;
+          font-weight: 600;
+          color: #0F172A;
+          margin: 0 0 4px;
+        }
+
+        .inventory-info p, .product-info p {
+          color: #64748B;
+          font-size: 0.85rem;
+          margin: 0 0 12px;
+        }
+
+        .inventory-meta {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+        }
+
+        .status {
+          padding: 4px 10px;
+          border-radius: 12px;
+          font-size: 0.75rem;
+          font-weight: 500;
+        }
+
+        .price, .product-price {
+          font-weight: 700;
+          color: #10B981;
+        }
+
+        .quantity {
+          font-size: 0.8rem;
+          color: #94A3B8;
+        }
+
+        .product-badge {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          padding: 4px 10px;
+          background: white;
+          border-radius: 12px;
+          font-size: 0.7rem;
+          font-weight: 500;
+        }
+
+        .product-card {
+          position: relative;
+        }
+
+        .buy-btn {
+          width: 100%;
+          padding: 10px;
+          background: #F1F5F9;
+          border: none;
+          border-radius: 10px;
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          transition: all 0.2s;
+        }
+
+        .buy-btn:hover {
+          background: #10B981;
+          color: white;
+        }
+
+        .modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          animation: fadeIn 0.2s;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        .modal-content {
+          background: white;
+          border-radius: 24px;
+          width: 100%;
+          max-width: 450px;
+          animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 24px 24px 0;
+        }
+
+        .modal-header h3 {
+          font-size: 1.25rem;
+          font-weight: 600;
+        }
+
+        .modal-header button {
+          width: 36px;
+          height: 36px;
+          border: none;
+          background: #F1F5F9;
+          border-radius: 10px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .modal-body {
+          padding: 24px;
+        }
+
+        .form-field {
+          margin-bottom: 16px;
+        }
+
+        .form-field label {
+          display: block;
+          font-weight: 500;
+          margin-bottom: 8px;
+          color: #374151;
+        }
+
+        .form-field select, .form-field input, .form-field textarea {
+          width: 100%;
+          padding: 12px 16px;
+          border: 2px solid #E2E8F0;
+          border-radius: 10px;
+          font-size: 0.95rem;
+        }
+
+        .form-field select:focus, .form-field input:focus, .form-field textarea:focus {
+          outline: none;
+          border-color: #10B981;
+        }
+
+        .submit-btn {
+          width: 100%;
+          padding: 14px;
+          background: linear-gradient(135deg, #10B981, #059669);
+          color: white;
+          border: none;
+          border-radius: 12px;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        .payment-modal {
+          max-width: 400px;
+        }
+
+        .payment-summary {
+          display: flex;
+          justify-content: space-between;
+          padding: 16px 24px;
+          background: #F8FAFC;
+          margin: 16px 24px;
+          border-radius: 12px;
+        }
+
+        .payment-value {
+          font-weight: 700;
+          font-size: 1.25rem;
+          color: #10B981;
+        }
+
+        .payment-methods {
+          display: flex;
+          gap: 10px;
+          padding: 0 24px;
+          margin-bottom: 20px;
+        }
+
+        .method-btn {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 6px;
+          padding: 14px;
+          background: #F8FAFC;
+          border: 2px solid transparent;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .method-btn.active {
+          border-color: #10B981;
+          background: #D1FAE5;
+        }
+
+        .pay-btn {
+          width: calc(100% - 48px);
+          margin: 0 24px 24px;
+          padding: 16px;
+          background: linear-gradient(135deg, #10B981, #059669);
+          color: white;
+          border: none;
+          border-radius: 12px;
+          font-size: 1.1rem;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        @media (max-width: 1024px) {
+          .metrics-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+          .dashboard-grid {
+            grid-template-columns: 1fr;
+          }
+          .inventory-grid, .marketplace-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        @media (max-width: 768px) {
+          .dashboard-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+          }
+          .tabs-container {
+            flex-wrap: wrap;
+          }
+          .filter-group {
+            flex-wrap: wrap;
+          }
+          .inventory-grid, .marketplace-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </div>
   )
 }
